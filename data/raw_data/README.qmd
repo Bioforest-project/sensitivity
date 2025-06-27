@@ -11,7 +11,7 @@ format:
 
 All raw data for the analyses. In particular:
 
--   `harmonized_dataset_ss`: first harmonized shared inventories by Mithila
+-   `data_cleaned_*.csv`: harmonized inventories
 
 ```{r, comment=""}
 fs::dir_tree()
