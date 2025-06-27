@@ -1,0 +1,19 @@
+project:
+  type: book
+  output-dir: docs
+
+book:
+  title: "Sensitivity"
+  date: last-modified
+  chapters:
+    - index.qmd
+  appendices:
+    - 01_dummy.qmd
+
+format:
+  html:
+    theme: cosmo
+    code-fold: true
+    number-depth: -1
+
+editor: visual

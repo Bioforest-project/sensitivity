@@ -1,0 +1,11 @@
+---
+title: "Sensitivity"
+date: today
+date-format: medium
+format: 
+  gfm:
+    toc: true
+    toc-depth: 1
+---
+
+**sensitivity** is ...

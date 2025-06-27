@@ -1,0 +1,44 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Sensitivity",
+    "section": "",
+    "text": "Introduction\nsensitivity is …"
+  },
+  {
+    "objectID": "index.html#usage",
+    "href": "index.html#usage",
+    "title": "Sensitivity",
+    "section": "Usage",
+    "text": "Usage\ndata_preparation is only linking for the subtasks for now. See:\n\ninventories: https://github.com/Bioforest-project/inventories\nspecies: https://github.com/Bioforest-project/species\nenvironment: https://github.com/Bioforest-project/environment"
+  },
+  {
+    "objectID": "index.html#project",
+    "href": "index.html#project",
+    "title": "Sensitivity",
+    "section": "Project",
+    "text": "Project\ndata_preparation includes:\n\nPresentation of the analyses with associated documentation and figures:\n\nReproductive analyses in files.qmd\nResulting pages in docs/\nDocument structure definition in _quarto.yml\n\nFigures in figures/\nR environment definition with renv in renv/ and renv/lock\nR files (.Rbuildignore , .Rdata , .Rprofile , .Rhistory)\nGit and GitHub files (.gitignore , .github/)\nProject documentation (README.qmd , README.md , NEWS.md , LICENSE)"
+  },
+  {
+    "objectID": "index.html#contribution",
+    "href": "index.html#contribution",
+    "title": "Sensitivity",
+    "section": "Contribution",
+    "text": "Contribution\nYou can contribute to the project by forking the repository on github and cloning the fork to your machine using several options, including GitHub desktop GUI. Further informations on contribution are detailed in the online document: https://bioforest-project.github.io/data_preparation/98_contributing.html."
+  },
+  {
+    "objectID": "index.html#help",
+    "href": "index.html#help",
+    "title": "Sensitivity",
+    "section": "Help",
+    "text": "Help\nPlease preferentially create an issue on GitHub for any questions, bugs or help needed regarding data_preparation: https://github.com/Bioforest-project/data_preparation/issues . You may however reach us by mail with people from the core group (see below)."
+  },
+  {
+    "objectID": "index.html#core-group",
+    "href": "index.html#core-group",
+    "title": "Sensitivity",
+    "section": "Core group",
+    "text": "Core group\n\nSylvain Schmitt (sylvain.schmitt@cirad.fr)\nCamille Piponiot-Laroche (camille.piponiot-laroche@cirad.fr)\nGéraldine Derroire (geraldine.derroire@cirad.fr)\nMithila Unkule (mithila.unkule@fondationbiodiversite.fr)\nIrié Cazimir Zo-Bi (iczobi@gmail.com)\nAnand Roopsind (aroopsind@gmail.com)\n\nThe whole group consist of participants to the Bioforest project."
+  }
+]
