@@ -7,38 +7,10 @@
     "text": "Introduction\nsensitivity is …"
   },
   {
-    "objectID": "index.html#usage",
-    "href": "index.html#usage",
-    "title": "Sensitivity",
-    "section": "Usage",
-    "text": "Usage\ndata_preparation is only linking for the subtasks for now. See:\n\ninventories: https://github.com/Bioforest-project/inventories\nspecies: https://github.com/Bioforest-project/species\nenvironment: https://github.com/Bioforest-project/environment"
-  },
-  {
-    "objectID": "index.html#project",
-    "href": "index.html#project",
-    "title": "Sensitivity",
-    "section": "Project",
-    "text": "Project\ndata_preparation includes:\n\nPresentation of the analyses with associated documentation and figures:\n\nReproductive analyses in files.qmd\nResulting pages in docs/\nDocument structure definition in _quarto.yml\n\nFigures in figures/\nR environment definition with renv in renv/ and renv/lock\nR files (.Rbuildignore , .Rdata , .Rprofile , .Rhistory)\nGit and GitHub files (.gitignore , .github/)\nProject documentation (README.qmd , README.md , NEWS.md , LICENSE)"
-  },
-  {
-    "objectID": "index.html#contribution",
-    "href": "index.html#contribution",
-    "title": "Sensitivity",
-    "section": "Contribution",
-    "text": "Contribution\nYou can contribute to the project by forking the repository on github and cloning the fork to your machine using several options, including GitHub desktop GUI. Further informations on contribution are detailed in the online document: https://bioforest-project.github.io/data_preparation/98_contributing.html."
-  },
-  {
-    "objectID": "index.html#help",
-    "href": "index.html#help",
-    "title": "Sensitivity",
-    "section": "Help",
-    "text": "Help\nPlease preferentially create an issue on GitHub for any questions, bugs or help needed regarding data_preparation: https://github.com/Bioforest-project/data_preparation/issues . You may however reach us by mail with people from the core group (see below)."
-  },
-  {
-    "objectID": "index.html#core-group",
-    "href": "index.html#core-group",
-    "title": "Sensitivity",
-    "section": "Core group",
-    "text": "Core group\n\nSylvain Schmitt (sylvain.schmitt@cirad.fr)\nCamille Piponiot-Laroche (camille.piponiot-laroche@cirad.fr)\nGéraldine Derroire (geraldine.derroire@cirad.fr)\nMithila Unkule (mithila.unkule@fondationbiodiversite.fr)\nIrié Cazimir Zo-Bi (iczobi@gmail.com)\nAnand Roopsind (aroopsind@gmail.com)\n\nThe whole group consist of participants to the Bioforest project."
+    "objectID": "01_dummy.html",
+    "href": "01_dummy.html",
+    "title": "Dummy",
+    "section": "",
+    "text": "Code\nlibrary(tidyverse)\nlibrary(entropart)\nlibrary(cmdstanr)\n\n\n\n\nCode\ndiversity &lt;- c(\"data/raw_data/data_cleaned_paracou.csv\",\n  \"data/raw_data/data_cleaned_mbaiki.csv\") %&gt;% \n  read_csv() %&gt;% \n  subset(!is.na(genus_cleaned)) %&gt;%\n  group_by(Site, Plot, Year, genus_cleaned) %&gt;%\n  summarise(count = n(), .groups = \"drop\") %&gt;%\n  group_by(Site, Plot, Year) %&gt;%\n  summarise(\n    diversity = Diversity(count,\n      q = 1, SampleCoverage = 0.9,\n      Correction = \"None\")\n  )\nba &lt;- c(\"data/raw_data/data_cleaned_paracou.csv\",\n  \"data/raw_data/data_cleaned_mbaiki.csv\") %&gt;% \n  read_csv() %&gt;% \n  group_by(Site, Plot, Year) %&gt;% \n  summarise(ba = sum(pi*(diameter_cor/200)^2))\nforest &lt;- left_join(diversity, ba) %&gt;%\n  rename_all(tolower) %&gt;% \n  ungroup() %&gt;% \n  mutate(rel_year = year - 1986) %&gt;% \n  mutate(sitenum = as.numeric(as.factor(site))) %&gt;% \n  mutate(plot = as.character(plot)) %&gt;% \n  left_join(read_tsv(\"data/raw_data/metadata.tsv\"))\ndata_equ &lt;- forest %&gt;%\n  filter((rel_year &lt;= 0 & treatment == \"Logging\") | treatment == \"Control\") %&gt;%\n  mutate(plotnum = as.numeric(as.factor(paste(site, plot))))\nind_equ &lt;- data_equ %&gt;%\n    select(site, plot, sitenum, plotnum) %&gt;%\n    unique()\ndata_rec &lt;- forest %&gt;%\n  filter(treatment == \"Logging\", rel_year &gt; 2) %&gt;%\n  mutate(plotnum = as.numeric(as.factor(paste0(site, \"_\", plot))))\nind_rec &lt;- data_rec %&gt;%\n    select(site, plot, sitenum, plotnum) %&gt;%\n    unique()\n\n\n\n\nCode\nforest %&gt;% \n  select(site, plot, rel_year, ba, diversity) %&gt;% \n  gather(variable, value, -site, -plot, -rel_year) %&gt;% \n  ggplot(aes(rel_year, value, col = plot)) +\n  geom_line() +\n  geom_point() +\n  facet_grid(variable ~ site, scales = \"free_y\") +\n  theme_bw() +\n  scale_color_discrete(guide = \"none\") +\n  geom_vline(xintercept = 0)\n\n\n\n\n\n\n\nCode\nequilibirum &lt;- cmdstan_model(\"models/equilibirum.stan\")\nmdata &lt;- list(\n    n_obs = nrow(data_equ),\n    n_site = max(data_equ$sitenum),\n    n_plot = max(data_equ$plotnum),\n    ba = data_equ$ba,\n    y = data_equ$diversity,\n    site = data_equ$sitenum,\n    plot = data_equ$plotnum\n)\nfit &lt;- equilibirum$sample(\n    mdata,\n    chains = 4,\n    parallel_chains = 4,\n    save_warmup = FALSE,\n    refresh = 100,\n    output_dir = \"chains/equ/\"\n)\n\n\n\n\nCode\nfit &lt;- as_cmdstan_fit(list.files(\"chains/equ/\", full.names = TRUE))\nmu &lt;- fit$summary(c(\"mu\", \"muba\")) %&gt;% \n  separate(variable, c(\"variable\", \"sitenum\"), convert = TRUE) %&gt;% \n  mutate(variable = recode(variable, \"mu\" = \"diversity\", \"muba\" = \"ba\")) %&gt;% \n  left_join(ind_equ %&gt;% distinct(sitenum, site))\nknitr::kable(mu)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvariable\nsitenum\nmean\nmedian\nsd\nmad\nq5\nq95\nrhat\ness_bulk\ness_tail\nsite\n\n\n\n\ndiversity\n1\n47.22631\n47.24360\n1.756616\n1.737830\n44.38557\n50.14199\n1.001916\n925.5952\n1387.541\nMbaiki\n\n\ndiversity\n2\n44.73192\n44.73815\n1.488167\n1.517070\n42.30202\n47.10864\n1.004342\n729.2118\n1065.679\nParacou\n\n\nba\n1\n123.72451\n123.82850\n3.039146\n2.817681\n118.46440\n128.53070\n1.001721\n1122.5074\n1318.239\nMbaiki\n\n\nba\n2\n192.84774\n192.86550\n2.418709\n2.411449\n188.83170\n196.87070\n1.000804\n1005.2742\n1750.113\nParacou\n\n\n\n\n\n\n\nCode\nrecovery &lt;- cmdstan_model(\"models/recovery.stan\")\nmdata &lt;- list(\n    n = nrow(data_rec),\n    s = max(data_rec$sitenum),\n    p = max(data_rec$plotnum),\n    ba = data_rec$ba,\n    y = data_rec$diversity,\n    t = data_rec$rel_year - 3,\n    site = data_rec$sitenum,\n    plot = data_rec$plotnum,\n    site_plot = ind_rec$sitenum,\n    mu_ba_theta_s = filter(mu, variable == \"ba\")$median,\n    sigma_ba_theta_s = filter(mu, variable == \"ba\")$sd,\n    mu_theta_s = filter(mu, variable == \"diversity\")$median,\n    sigma_theta_s = filter(mu, variable == \"diversity\")$sd\n)\nfit &lt;- recovery$sample(\n    mdata,\n    chains = 4,\n    parallel_chains = 4,\n    save_warmup = FALSE,\n    refresh = 100,\n    output_dir = \"chains/rec/\"\n)\n\n\n\n\nCode\nfit &lt;- as_cmdstan_fit(list.files(\"chains/rec/\", full.names = TRUE))\nfit$time() %&gt;% \n  knitr::kable()\n\n\n\n\n\n\n\n\n\n\nx\n\n\n\n\nNA\n\n\n\n\n\n\n\n\nchain_id\nwarmup\nsampling\ntotal\n\n\n\n\n1\n253.265\n317.964\n571.229\n\n\n2\n252.721\n230.042\n482.763\n\n\n3\n268.658\n284.581\n553.239\n\n\n4\n287.732\n383.801\n671.533\n\n\n\n\n\n\n\n\n\n\n\n\nCode\ngamma &lt;- fit$summary(\"gamma_s\")\nknitr::kable(gamma)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvariable\nmean\nmedian\nsd\nmad\nq5\nq95\nrhat\ness_bulk\ness_tail\n\n\n\n\ngamma_s[1]\n-0.2562655\n-0.2811835\n0.6448763\n0.5851867\n-1.343583\n0.7340255\n1.130108\n24.42913\n45.16251\n\n\ngamma_s[2]\n-2.8909328\n-3.0275900\n0.8027662\n0.8369277\n-3.904796\n-1.4752615\n1.007041\n743.82430\n1231.33836"
   }
 ]

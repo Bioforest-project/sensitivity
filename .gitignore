@@ -7,3 +7,5 @@
 /.quarto/
 .snakemake
 report.html
+chains/
+

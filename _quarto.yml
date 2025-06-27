@@ -7,7 +7,6 @@ book:
   date: last-modified
   chapters:
     - index.qmd
-  appendices:
     - 01_dummy.qmd
 
 format:

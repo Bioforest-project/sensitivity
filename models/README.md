@@ -1,5 +1,5 @@
 # Model
-Oct 16, 2024
+Jun 27, 2025
 
 All Bayesian models in stan.
 
@@ -11,9 +11,5 @@ fs::dir_tree()
     ├── README.md
     ├── README.qmd
     ├── README.rmarkdown
-    ├── ltr_dist.stan
-    ├── ltr_fixed.stan
-    ├── scratch.stan
-    ├── scratch2.stan
-    ├── scratch3.stan
-    └── str_fixed.stan
+    ├── equilibirum.stan
+    └── recovery.stan

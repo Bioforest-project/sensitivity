@@ -22,8 +22,6 @@ parameters {
   real<lower=-2, upper=2> mu_ba_delta;
   real<lower=0> sigma_ba_delta;
   vector<lower=5-3, upper=40-3>[s] tau0_ba_s;
-  real<lower=5-3, upper=40-3> mu_ba_tau0;
-  real<lower=0> sigma_ba_tau;
   vector<lower=1, upper=100>[s] theta_ba_s;
   real<lower=0> sigma_ba;
   vector<lower=0.1, upper=1>[p] phi_p;
@@ -31,11 +29,8 @@ parameters {
   real<lower=0, upper=0.5> mu_lambda;
   real<lower=0> sigma_lambda;
   vector<lower=5-3, upper=40-3>[s] tau0_s;
-  real<lower=5-3, upper=40-3> mu_tau0;
-  real<lower=0> sigma_tau;
   vector<lower=(mu_theta_s-sigma_theta_s)*0.1, upper=(mu_theta_s+sigma_theta_s)*10>[s] theta_s;
   real<lower=0> sigma;
-  
   vector<lower=-phi_p, upper=2>[p] delta_p;
   real<lower=0> sigma_delta;
   vector<lower=-4, upper=4>[s] delta0_s;
@@ -57,21 +52,17 @@ model {
   log(ba) ~ normal(log(mu_ba), sigma_ba);
   lambda_ba_p ~ normal(mu_ba_lambda, sigma_ba_lambda);
   delta_ba_p ~ cauchy(mu_ba_delta, sigma_ba_delta);
-  tau0_ba_s ~ normal(mu_ba_tau0, sigma_ba_tau);
   for(i in 1:s)
     theta_ba_s[i] ~ normal(mu_ba_theta_s[i], sigma_ba_theta_s[i]);
   sigma_ba ~ std_normal();
   sigma_ba_lambda ~ std_normal();
   sigma_ba_delta ~ std_normal();
-  sigma_ba_tau ~ std_normal();
   log(y) ~ normal(log(mu), sigma);
   lambda_p ~ normal(mu_lambda, sigma_lambda);
   delta_p ~ cauchy(delta0_s[site_plot] + gamma_s[site_plot] .* phi_ba_p, sigma_delta);
-  tau0_s ~ normal(mu_tau0, sigma_tau);
   for(i in 1:s)
     theta_s[i] ~ normal(mu_theta_s[i], sigma_theta_s[i]);
   sigma ~ std_normal();
   sigma_lambda ~ std_normal();
   sigma_delta ~ std_normal();
-  sigma_tau ~ std_normal();
 }
