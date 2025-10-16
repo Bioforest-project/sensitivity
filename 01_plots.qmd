@@ -1,0 +1,210 @@
+# Plots {.unnumbered}
+
+```{r set}
+#| message: false
+#| warning: false
+library(tidyverse)
+library(entropart)
+```
+
+## Paracou
+
+Paracou plots are 6.25-ha 250x250m plots, we subdivided them into 4-ha, 2-ha, 1-ha, 0.5-ha and 0.25-ha.
+
+```{r subplots_paracou}
+#| eval: false
+paracou <- "data/raw_data/data_cleaned_paracou.csv" %>% 
+  read_csv() %>% 
+  rename_all(tolower) %>% 
+  rename(x = xtreeplot, y = ytreeplot) %>% 
+  # 6.25-ha
+  mutate(plot_625 = plot) %>% 
+  select(site, plot, idtree, x, y, plot_625) %>% 
+  unique() %>% 
+  # 4-ha
+  mutate(subx = ifelse(x <= 200, x, NA),
+         suby = ifelse(y <= 200, y, NA)) %>% 
+  rowwise() %>% 
+  mutate(plot_400 = ifelse(!is.na(subx) && !is.na(suby),
+                           paste0(plot_625, "_1"), NA)) %>% 
+  # 2-ha
+  mutate(plot_200 = ifelse(subx > 100, paste0(plot_400, "_2"), 
+                          paste0(plot_400, "_1"))) %>% 
+  mutate(subx = ifelse(subx > 100, subx-100, subx)) %>% 
+  # 1-ha
+  mutate(plot_100 = ifelse(suby > 100, paste0(plot_200, "_2"), 
+                           paste0(plot_200, "_1"))) %>% 
+  mutate(suby = ifelse(suby > 100, suby-100, suby)) %>% 
+  # 0.5-ha
+  mutate(plot_050 = ifelse(subx > 50, paste0(plot_100, "_2"), 
+                          paste0(plot_100, "_1"))) %>% 
+  mutate(subx = ifelse(subx > 50, subx-50, subx)) %>% 
+  # 0.25-ha
+  mutate(plot_025 = ifelse(suby > 50, paste0(plot_050, "_2"),
+                          paste0(plot_050, "_1"))) %>% 
+  mutate(suby = ifelse(suby > 50, suby-50, suby)) %>% 
+  select(-subx, -suby) %>% 
+  mutate(across(c("plot_200", "plot_100", "plot_050", "plot_025"),
+                ~ ifelse(is.na(plot_400), NA, .))) %>% 
+  gather(area, subplot, -site, -plot, -idtree, -x, -y) %>% 
+  separate(area, c("x1", "area"), convert = TRUE) %>% 
+  select(-x1) %>% 
+  mutate(area = area/100)
+write_tsv(paracou, "data/derived_data/paracou_subplots.tsv")
+```
+
+```{r subplots_paracou_fig}
+#| message: false
+#| warning: false
+#| fig-cap: "Paracou sub-plots divisions."
+read_tsv("data/derived_data/paracou_subplots.tsv") %>% 
+  filter(plot == 1) %>% 
+  ggplot(aes(x, y, col = subplot)) +
+  geom_point() +
+  facet_wrap(~ paste0(area, "-ha")) +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  xlab("") + ylab("")
+```
+
+## Mbaiki
+
+Mbaiki plots are 4-ha 200x200m plots, we subdivided them into 2-ha, 1-ha, 0.5-ha, and 0.25-ha.
+
+```{r subplots_mbaiki}
+#| eval: false
+mbaiki <- "data/raw_data/data_cleaned_mbaiki.csv" %>% 
+  read_csv() %>% 
+  rename_all(tolower) %>% 
+  rename(x = xtreeplot, y = ytreeplot) %>% 
+  # 4-ha
+  mutate(plot_400 = plot) %>% 
+  select(site, plot, idtree, x, y, plot_400) %>% 
+  unique() %>% 
+  mutate(subx = x, suby = y) %>% 
+  # 2-ha
+  mutate(plot_200 = ifelse(subx > 100, paste0(plot_400, "_2"), 
+                          paste0(plot_400, "_1"))) %>% 
+  mutate(subx = ifelse(subx > 100, subx-100, subx)) %>% 
+  # 1-ha
+  mutate(plot_100 = ifelse(suby > 100, paste0(plot_200, "_2"), 
+                           paste0(plot_200, "_1"))) %>% 
+  mutate(suby = ifelse(suby > 100, suby-100, suby)) %>% 
+  # 0.5-ha
+  mutate(plot_050 = ifelse(subx > 50, paste0(plot_100, "_2"), 
+                          paste0(plot_100, "_1"))) %>% 
+  mutate(subx = ifelse(subx > 50, subx-50, subx)) %>% 
+  # 0.25-ha
+  mutate(plot_025 = ifelse(suby > 50, paste0(plot_050, "_2"),
+                          paste0(plot_050, "_1"))) %>% 
+  mutate(suby = ifelse(suby > 50, suby-50, suby)) %>% 
+  select(-subx, -suby) %>% 
+  gather(area, subplot, -site, -plot, -idtree, -x, -y) %>% 
+  separate(area, c("x1", "area"), convert = TRUE) %>% 
+  select(-x1) %>% 
+  mutate(area = area/100)
+write_tsv(mbaiki, "data/derived_data/mbaiki_subplots.tsv")
+```
+
+```{r subplots_mbaiki_fig}
+#| message: false
+#| warning: false
+#| fig-cap: "Mbaiki sub-plots divisions."
+read_tsv("data/derived_data/mbaiki_subplots.tsv") %>% 
+  filter(plot == 11) %>% 
+  ggplot(aes(x, y, col = subplot)) +
+  geom_point() +
+  facet_wrap(~ paste0(area, "-ha")) +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  xlab("") + ylab("")
+```
+
+## Trajectories
+
+```{r prep_model_data}
+#| eval: false
+paracou <- read_csv("data/raw_data/data_cleaned_paracou.csv") %>% 
+  rename_all(tolower) %>% 
+  select(site, year, idtree, genus_cleaned, diameter_cor)
+mbaiki <- read_csv("data/raw_data/data_cleaned_mbaiki.csv") %>% 
+  rename_all(tolower) %>% 
+  select(site, year, idtree, genus_cleaned, diameter_cor)
+raw <- bind_rows(
+  read_tsv("data/derived_data/paracou_subplots.tsv"),
+  read_tsv("data/derived_data/mbaiki_subplots.tsv")
+) %>% 
+  select(area, site, plot, subplot, idtree) %>%
+  left_join(bind_rows(paracou, mbaiki), relationship = "many-to-many") %>% 
+  filter(!is.na(subplot))
+diversity <- raw %>% 
+  subset(!is.na(genus_cleaned)) %>%
+  group_by(site, area, plot, subplot, year, genus_cleaned) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(site, area, plot, subplot, year) %>%
+  summarise(
+    diversity = Diversity(count,
+      q = 1, SampleCoverage = 0.9,
+      Correction = "None")
+  )
+ba <- raw %>% 
+  group_by(site, area, plot, subplot, year) %>% 
+  summarise(ba = sum(pi*(diameter_cor/200)^2))
+forest <- left_join(diversity, ba) %>%
+  mutate(rel_year = year - 1986) %>% 
+  group_by(area) %>% 
+  mutate(sitenum = as.numeric(as.factor(site))) %>% 
+  mutate(plot = as.character(plot)) %>% 
+  left_join(read_tsv("data/raw_data/metadata.tsv"))
+write_tsv(forest, "data/derived_data/data.tsv")
+data_equ <- forest %>%
+  group_by(area) %>% 
+  filter((rel_year <= 0 & treatment == "Logging") | treatment == "Control") %>%
+  mutate(subplotnum = as.numeric(as.factor(paste(site, subplot))))
+write_tsv(data_equ, "data/derived_data/data_equ.tsv")
+ind_equ <- data_equ %>%
+    select(area, site, plot, subplot, sitenum, subplotnum) %>%
+    unique()
+data_rec <- forest %>%
+  filter(treatment == "Logging", rel_year > 2) %>%
+  mutate(subplotnum = as.numeric(as.factor(paste0(site, "_", subplot))))
+write_tsv(data_rec, "data/derived_data/data_rec.tsv")
+ind_rec <- data_rec %>%
+    select(area, site, plot, subplot, sitenum, subplotnum) %>%
+    unique()
+```
+
+```{r traj_div}
+#| message: false
+#| warning: false
+#| fig-cap: "Diversity trajectories."
+read_tsv("data/derived_data/data.tsv") %>% 
+  ggplot(aes(rel_year, diversity, col = subplot)) +
+  geom_line() +
+  geom_point() +
+  facet_grid(site ~ paste0(area, "-ha"), scales = "free_y") +
+  theme_bw() +
+  scale_color_discrete(guide = "none") +
+  geom_vline(xintercept = 0) +
+  xlab("") +
+  ylab(expression("Genus diversity" ~ q == 1))
+```
+
+```{r traj_ba}
+#| message: false
+#| warning: false
+#| fig-cap: "Basal area trajectories."
+read_tsv("data/derived_data/data.tsv") %>% 
+  mutate(rel_year = year - 1986) %>% 
+  ggplot(aes(rel_year, ba, col = subplot)) +
+  geom_line() +
+  geom_point() +
+  facet_grid(site ~ paste0(area, "-ha"), scales = "free_y") +
+  theme_bw() +
+  scale_color_discrete(guide = "none") +
+  geom_vline(xintercept = 0) +
+  xlab("") +
+  ylab(expression("BA [" ~ m^2 ~ m^{
+  -2
+} ~ "]"))
+```

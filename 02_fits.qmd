@@ -1,0 +1,196 @@
+# Fits {.unnumbered}
+
+```{r set}
+#| message: false
+#| warning: false
+library(tidyverse)
+library(cmdstanr)
+```
+
+## Equilibrium
+
+```{r fit_equ}
+#| eval: false
+areas <- c(6.25, 4.00, 2.00, 1.00, 0.50, 0.25)
+equilibirum <- cmdstan_model("models/equilibirum.stan")
+for(a in areas){
+  data_eq <- read_tsv("data/derived_data/data_equ.tsv") %>% 
+  filter(area == a)
+  mdata <- list(
+    n_obs = nrow(data_eq),
+    n_site = max(data_eq$sitenum),
+    n_plot = max(data_eq$subplotnum),
+    ba = data_eq$ba,
+    y = data_eq$diversity,
+    site = data_eq$sitenum,
+    plot = data_eq$subplotnum
+  )
+  dir <- file.path("chains", paste0("equ", "_", a*100))
+  unlink(dir, recursive = TRUE)
+  dir.create(dir)
+  fit <- equilibirum$sample(
+    mdata,
+    chains = 4,
+    parallel_chains = 4,
+    save_warmup = FALSE,
+    refresh = 100,
+    output_dir = dir
+    )
+}
+```
+
+```{r res_equ}
+#| eval: false
+data_eq <- read_tsv("data/derived_data/data_equ.tsv")
+ind_eq <- data_eq %>%
+    select(area, site, plot, subplot, sitenum, subplotnum) %>%
+    unique()
+fits <- tibble(area = c(6.25, 4.00, 2.00, 1.00, 0.50, 0.25)) %>% 
+  mutate(directory = file.path("chains", paste0("equ", "_", area*100))) %>% 
+  rowwise() %>% 
+  mutate(files = list(list.files(directory, full.names = TRUE))) %>% 
+  mutate(fit = list(as_cmdstan_fit(files)))
+mu <- fits %>% 
+  mutate(mu = list(fit$summary(c("mu", "muba")))) %>% 
+  select(area, mu) %>% 
+  unnest(mu) %>% 
+  separate(variable, c("variable", "sitenum"), convert = TRUE) %>% 
+  mutate(variable = recode(variable, "mu" = "diversity", "muba" = "ba")) %>% 
+  left_join(ind_eq %>% distinct(area, sitenum, site))
+write_tsv(mu, "data/derived_data/mu_equ.tsv")
+time <- fits %>% 
+  mutate(time = list(fit$time()[[2]])) %>% 
+  select(area, time) %>% 
+  unnest(time)
+write_tsv(time, "data/derived_data/time_equ.tsv")
+```
+
+```{r time_equ}
+#| message: false
+#| warning: false
+#| fig-cap: "Duration equlibirum model."
+read_tsv("data/derived_data/time_equ.tsv") %>% 
+  ggplot(aes(paste0(area, "-ha"), total)) +
+  geom_boxplot() +
+  theme_bw() +
+  xlab("") + ylab("Time [ s ]") +
+  scale_y_log10()
+```
+
+```{r mu_equ}
+#| message: false
+#| warning: false
+#| fig-cap: "Equlibirum values."
+read_tsv("data/derived_data/mu_equ.tsv") %>% 
+  select(area, site, variable, median,sd, q5, q95) %>% 
+  na.omit() %>% 
+  ggplot(aes(paste0(area, "-ha"), median)) +
+  geom_segment(aes(y = median - sd, yend = median + sd)) +
+  geom_segment(aes(y = q5, yend = q95), size = .3) +
+  geom_point() +
+  facet_grid(variable ~ site, scales = "free") +
+  theme_bw() +
+  xlab("") + ylab("")
+```
+
+## Recovery
+
+```{r fit_rec}
+#| eval: false
+areas <- c(6.25, 4.00, 2.00, 1.00, 0.50, 0.25)
+recovery <- cmdstan_model("models/recovery.stan")
+for(a in areas){
+  data_rec <- read_tsv("data/derived_data/data_rec.tsv") %>% 
+  filter(area == a)
+  ind_rec <- data_rec %>%
+    select(area, site, plot, subplot, sitenum, subplotnum) %>%
+    unique()
+  mu <- read_tsv("data/derived_data/mu_equ.tsv") %>% 
+  filter(area == a)
+  mdata <- list(
+    n = nrow(data_rec),
+    s = max(data_rec$sitenum),
+    p = max(data_rec$subplotnum),
+    ba = data_rec$ba,
+    y = data_rec$diversity,
+    t = data_rec$rel_year - 3,
+    site = data_rec$sitenum,
+    plot = data_rec$subplotnum,
+    site_plot = ind_rec$sitenum,
+    mu_ba_theta_s = filter(mu, variable == "ba")$median,
+    sigma_ba_theta_s = filter(mu, variable == "ba")$sd,
+    mu_theta_s = filter(mu, variable == "diversity")$median,
+    sigma_theta_s = filter(mu, variable == "diversity")$sd
+    )
+  dir <- file.path("chains", paste0("rec", "_", a*100))
+  unlink(dir, recursive = TRUE)
+  dir.create(dir)
+  fit <- recovery$sample(
+    mdata,
+    chains = 4,
+    parallel_chains = 4,
+    save_warmup = FALSE,
+    refresh = 100,
+    output_dir = dir
+    )
+}
+```
+
+```{r res_rec}
+#| eval: false
+data_rec <- read_tsv("data/derived_data/data_rec.tsv")
+ind_rec <- data_rec %>%
+    select(area, site, plot, subplot, sitenum, subplotnum) %>%
+    unique()
+fits <- tibble(area = c(6.25, 4.00, 2.00, 1.00, 0.50, 0.25)) %>% 
+  mutate(directory = file.path("chains", paste0("rec", "_", area*100))) %>% 
+  rowwise() %>% 
+  mutate(files = list(list.files(directory, full.names = TRUE))) %>% 
+  mutate(fit = list(as_cmdstan_fit(files)))
+time <- fits %>% 
+  mutate(time = list(fit$time()[[2]])) %>% 
+  select(area, time) %>% 
+  unnest(time)
+write_tsv(time, "data/derived_data/time_rec.tsv")
+gamma <- fits %>% 
+  mutate(gamma = list(fit$summary("gamma_s"))) %>% 
+  select(area, gamma) %>% 
+  unnest(gamma) %>% 
+  separate(variable, c("variable", "s", "sitenum"), convert = TRUE) %>% 
+  left_join(ind_rec %>% distinct(area, sitenum, site)) %>% 
+  select(-s)
+write_tsv(gamma, "data/derived_data/gamma_rec.tsv")
+```
+
+```{r time_rec}
+#| message: false
+#| warning: false
+#| fig-cap: "Duration recovery model."
+read_tsv("data/derived_data/time_rec.tsv") %>% 
+  ggplot(aes(paste0(area, "-ha"), total/60)) +
+  geom_boxplot() +
+  theme_bw() +
+  xlab("") + ylab("Time [ m ]") +
+  scale_y_log10()
+```
+
+```{r gamma_rec}
+#| message: false
+#| warning: false
+#| fig-cap: "Equlibirum values."
+read_tsv("data/derived_data/gamma_rec.tsv") %>% 
+  select(area, site, variable, median,sd, q5, q95) %>% 
+  na.omit() %>% 
+  ggplot(aes(paste0(area, "-ha"), median, col = site)) +
+  geom_hline(yintercept = 0, col = "darkgrey") +
+  geom_segment(aes(y = median - sd, yend = median + sd),
+               position = position_nudge(x = c(-0.1, 0.1))) +
+  geom_segment(aes(y = q5, yend = q95), size = .3,
+               position = position_nudge(x = c(-0.1, 0.1))) +
+  geom_point(position = position_nudge(x = c(-0.1, 0.1))) +
+  theme_bw() +
+  xlab("") + 
+  scale_y_reverse(expression(gamma~"["~"%"~"%"^{-1}~"]")) +
+  scale_color_discrete("") +
+  theme(legend.position = c(0.2, 0.8))
+```
