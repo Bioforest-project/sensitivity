@@ -9,7 +9,6 @@ book:
     - index.qmd
     - 01_plots.qmd
     - 02_fits.qmd
-
 format:
   html:
     theme: cosmo

@@ -1,3 +1,4 @@
--   sensitivity 0.1.0.9003: res
--   sensitivity 0.1.0.9002: dummy example
--   sensitivity 0.1.0.9001: restart
+- sensitivity 0.1.0.9004: simpler plot recovery model from observed disturbance with rarefied species diversity
+- sensitivity 0.1.0.9003: res
+- sensitivity 0.1.0.9002: dummy example
+- sensitivity 0.1.0.9001: restart

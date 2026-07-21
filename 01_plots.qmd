@@ -144,8 +144,7 @@ diversity <- raw %>%
   group_by(site, area, plot, subplot, year) %>%
   summarise(
     diversity = Diversity(count,
-      q = 1, SampleCoverage = 0.9,
-      Correction = "None")
+      q = 0, Level = 100)
   )
 ba <- raw %>% 
   group_by(site, area, plot, subplot, year) %>% 
@@ -155,23 +154,32 @@ forest <- left_join(diversity, ba) %>%
   group_by(area) %>% 
   mutate(sitenum = as.numeric(as.factor(site))) %>% 
   mutate(plot = as.character(plot)) %>% 
-  left_join(read_tsv("data/raw_data/metadata.tsv"))
+  left_join(read_tsv("data/raw_data/metadata.tsv")) |> 
+  filter(treatment == "Logging") |> 
+  group_by(area) %>% 
+  mutate(subplotnum = as.numeric(as.factor(paste(site, subplot))))
 write_tsv(forest, "data/derived_data/data.tsv")
 data_equ <- forest %>%
   group_by(area) %>% 
-  filter((rel_year <= 0 & treatment == "Logging") | treatment == "Control") %>%
-  mutate(subplotnum = as.numeric(as.factor(paste(site, subplot))))
+  filter(rel_year <= 0) %>%
+  select(area, site, sitenum, plot, subplot, subplotnum, year, rel_year, diversity, ba)
 write_tsv(data_equ, "data/derived_data/data_equ.tsv")
-ind_equ <- data_equ %>%
-    select(area, site, plot, subplot, sitenum, subplotnum) %>%
-    unique()
 data_rec <- forest %>%
-  filter(treatment == "Logging", rel_year > 2) %>%
-  mutate(subplotnum = as.numeric(as.factor(paste0(site, "_", subplot))))
+  filter(rel_year > 2)
+dist_obs <- data_rec %>%
+  group_by(area, site, subplot) %>%
+  summarise(ba_post = min(ba, na.rm = TRUE)) %>%
+  left_join(data_equ %>% 
+              filter(rel_year <= 0) |> 
+              group_by(area, site, subplot) %>%
+              summarise(ba_pre = median(ba, na.rm = TRUE))) %>%
+  mutate(dist_obs = (ba_pre - ba_post) / ba_pre) %>%
+  select(area, site, subplot, dist_obs) %>% 
+  mutate(dist_obs = ifelse(dist_obs < 0, 0, dist_obs))
+data_rec <- data_rec |> 
+  select(area, site, sitenum, plot, subplot, subplotnum, year, rel_year, diversity, ba) |>
+  left_join(dist_obs)
 write_tsv(data_rec, "data/derived_data/data_rec.tsv")
-ind_rec <- data_rec %>%
-    select(area, site, plot, subplot, sitenum, subplotnum) %>%
-    unique()
 ```
 
 ```{r traj_div}
@@ -188,23 +196,4 @@ read_tsv("data/derived_data/data.tsv") %>%
   geom_vline(xintercept = 0) +
   xlab("") +
   ylab(expression("Genus diversity" ~ q == 1))
-```
-
-```{r traj_ba}
-#| message: false
-#| warning: false
-#| fig-cap: "Basal area trajectories."
-read_tsv("data/derived_data/data.tsv") %>% 
-  mutate(rel_year = year - 1986) %>% 
-  ggplot(aes(rel_year, ba, col = subplot)) +
-  geom_line() +
-  geom_point() +
-  facet_grid(site ~ paste0(area, "-ha"), scales = "free_y") +
-  theme_bw() +
-  scale_color_discrete(guide = "none") +
-  geom_vline(xintercept = 0) +
-  xlab("") +
-  ylab(expression("BA [" ~ m^2 ~ m^{
-  -2
-} ~ "]"))
 ```
